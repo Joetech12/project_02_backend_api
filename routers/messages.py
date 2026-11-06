@@ -1,6 +1,7 @@
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, status
 
+from dependencies.common import Pagination
 from schemas import (
     MessageCreate,
     MessageUpdate,
@@ -16,14 +17,12 @@ router = APIRouter(
 )
 
 
-# Temporary storage
 storage = {
     "next_id": 1,
     "messages": {},
 }
 
 
-# CREATE
 @router.post(
     "",
     response_model=MessageResponse,
@@ -45,15 +44,13 @@ def create_message(message_data: MessageCreate):
     return new_message
 
 
-# READ ALL
 @router.get(
     "",
     response_model=MessageListResponse,
 )
 def get_messages(
+    pagination: Pagination,
     sender: str | None = None,
-    limit: int = Query(default=10, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
 ):
 
     messages = list(storage["messages"].values())
@@ -67,7 +64,12 @@ def get_messages(
 
     total = len(messages)
 
-    paginated_messages = messages[offset:offset + limit]
+    limit = pagination["limit"]
+    offset = pagination["offset"]
+
+    paginated_messages = messages[
+        offset:offset + limit
+    ]
 
     return {
         "total": total,
@@ -77,7 +79,6 @@ def get_messages(
     }
 
 
-# READ ONE
 @router.get(
     "/{message_id}",
     response_model=MessageResponse,
@@ -95,7 +96,6 @@ def get_message(message_id: int):
     return message
 
 
-# UPDATE
 @router.patch(
     "/{message_id}",
     response_model=MessageResponse,
@@ -123,7 +123,6 @@ def update_message(
     return message
 
 
-# DELETE
 @router.delete(
     "/{message_id}",
     response_model=MessageDeleteResponse,
